@@ -19,23 +19,23 @@ import LoginModal from "../modals/LoginModal";
 import Eklendi from "../modals/Eklendi";
 import { toast } from "sonner";
 
-const BilgiModal = () => {
+const BilgiModal = ({ onClose, tekrarCalis }) => {
   const [ad, setAd] = useState("");
   const [ogrNo, setOgrNo] = useState("");
   const [rol, setRol] = useState("ogrenci");
 
   const formatAdSoyad = (input) => {
-    return input
-      .toUpperCase()
-      .replace(/ı/g, "I")
-      .replace(/ğ/g, "G")
-      .replace(/ü/g, "U")
-      .replace(/ş/g, "S")
-      .replace(/ç/g, "C")
-      .replace(/ö/g, "O")
-      .replace(/\s+/g, "-")
-      .replace(/--+/g, "-")
-      .replace(/^-+|-+$/g, "");
+    return input.toUpperCase();
+  };
+
+  const handleAdChange = (e) => {
+    const input = e.target.value;
+    const turkishCharactersRegex = /[ğüşöçİĞÜŞÖÇ]/;
+    if (turkishCharactersRegex.test(input)) {
+      toast.warning("Türkçe karakter girişi yapılamaz.");
+      return;
+    }
+    setAd(input);
   };
 
   const handleSubmit = (e) => {
@@ -49,6 +49,8 @@ const BilgiModal = () => {
         Cookies.set("ogrNo", ogrNo, { expires: 365 });
       }
       toast.success("Bilgiler kaydedildi.");
+      onClose();
+      tekrarCalis();
     } else {
       toast.warning("Lütfen adınızı giriniz.");
     }
@@ -104,7 +106,7 @@ const BilgiModal = () => {
             type="text"
             placeholder="Ad Soyad"
             value={ad}
-            onChange={(e) => setAd(e.target.value)}
+            onChange={handleAdChange}
             className="w-full border text-sm md:text-base py-2 text-center outline-none focus:ring-1 rounded-lg duration-300 ring-emerald-300"
             autoFocus
             required
@@ -145,6 +147,7 @@ const BilgiModal = () => {
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [fiyat, setFiyat] = useState({});
+  const [bilgiModal, setBilgiModal] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isOpen2, setIsOpen2] = useState(false);
   const [isLoadingMenu, setIsLoadingMenu] = useState(true);
@@ -205,6 +208,11 @@ const Menu = () => {
   }, []);
 
   const handleButtonClick = async () => {
+    if (!Cookies.get("ad")) {
+      setBilgiModal(true);
+      return;
+    }
+
     const today = new Date();
     Cookies.set("menuId", menuItems[0].id, { expires: 1 });
     Cookies.set("menuDate", formatDate(today), { expires: 1 });
@@ -259,7 +267,6 @@ const Menu = () => {
         className="absolute inset-0 w-full h-full object-cover opacity-30"
         style={{ zIndex: -1 }}
       />
-
       <div className="absolute w-full flex justify-between items-center gap-5 top-5 px-5 md:px-10">
         <LogIn
           className="cursor-pointer text-gray-500 ml-auto hover:text-black hover:scale-105 duration-500"
@@ -291,7 +298,6 @@ const Menu = () => {
           &copy; Onur Kürkaya
         </motion.h3>
       </header>
-
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -368,7 +374,6 @@ const Menu = () => {
           </button>
         )}
       </motion.div>
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -409,10 +414,16 @@ const Menu = () => {
           </motion.div>
         )}
       </motion.div>
-
       <LoginModal isOpen={isOpen} setIsOpen={setIsOpen} />
       <Eklendi setIsOpen2={setIsOpen2} isOpen2={isOpen2} />
-      <BilgiModal />
+      <AnimatePresence>
+        {bilgiModal && (
+          <BilgiModal
+            onClose={() => setBilgiModal(false)}
+            tekrarCalis={handleButtonClick}
+          />
+        )}
+      </AnimatePresence>{" "}
       <br className="block md:hidden" />
       <br className="block md:hidden" />
       <br className="block md:hidden" />

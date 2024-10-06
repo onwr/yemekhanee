@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 import React from "react";
 
-const Eklendi = ({ isOpen2, setIsOpen2 }) => {
+const Eklendi = ({ isOpen2, setIsOpen2, ad }) => {
   if (!isOpen2) return null;
 
   const containerVariants = {
