@@ -2,8 +2,11 @@ import { Info, X } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { db } from "../../firebase";
+import { addDoc, collection } from "firebase/firestore";
 
-const MenuOlustur = () => {
+const MenuOlustur = ({ kapat }) => {
+  const [tarih, setTarih] = useState("");
   const [yemekler, setYemekler] = useState(["Yemek 1"]);
 
   const handleAddYemek = () => {
@@ -17,6 +20,45 @@ const MenuOlustur = () => {
     ]);
   };
 
+  const handleRemoveYemek = (index) => {
+    setYemekler((prevYemekler) => prevYemekler.filter((_, i) => i !== index));
+  };
+
+  const handleYemekChange = (index, value) => {
+    setYemekler((prevYemekler) =>
+      prevYemekler.map((yemek, i) => (i === index ? value : yemek))
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!tarih || yemekler.length === 0) {
+      toast.error("Lütfen tüm alanları doldurunuz.");
+      return;
+    }
+
+    try {
+      const yemekList = yemekler.reduce((acc, yemek, index) => {
+        acc[`yemek${index + 1}`] = yemek;
+        return acc;
+      }, {});
+
+      await addDoc(collection(db, "yemekler"), {
+        tarih,
+        ...yemekList,
+        katilacakSayi: 0,
+      });
+
+      toast.success("Menü başarıyla oluşturuldu!");
+      setTarih("");
+      setYemekler(["Yemek 1"]);
+    } catch (error) {
+      console.error("Hata oluştu 427", error);
+      toast.error("Menü oluştururken bir hata oluştu. 427");
+    }
+  };
+
   return (
     <div className="fixed min-h-screen px-2 md:px-0 flex items-center justify-center bg-opacity-80 bg-black w-full z-50">
       <div className="bg-white max-w-lg w-full p-3 rounded">
@@ -24,10 +66,11 @@ const MenuOlustur = () => {
           <p className="font-medium text-lg">Menü Oluştur</p>
           <X
             size={24}
+            onClick={kapat}
             className="text-white p-1 rounded-full bg-black hover:bg-white duration-300 hover:text-black cursor-pointer"
           />
         </div>
-        <form className="mt-5">
+        <form className="mt-5" onSubmit={handleSubmit}>
           <div>
             <div className="flex font-medium items-center justify-between">
               <label htmlFor="tarih">Tarih</label>
@@ -44,14 +87,16 @@ const MenuOlustur = () => {
             </div>
             <input
               type="text"
-              id="tarih"
               autoFocus
+              required
               placeholder="Tarihi giriniz"
               className="p-2 rounded-lg border outline-none focus:ring-1 ring-emerald-300 duration-300 w-full mt-2"
+              value={tarih}
+              onChange={(e) => setTarih(e.target.value)}
             />
           </div>
           <p className="text-center text-lg my-2">Menü</p>
-          <div className="bg-emerald-300 rounded px-1 py-2 border">
+          <div className="bg-emerald-300 px-1 py-2 border">
             <AnimatePresence>
               {yemekler.map((yemek, index) => (
                 <motion.div
@@ -59,13 +104,22 @@ const MenuOlustur = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mt-2"
+                  className="flex items-center mt-0.5"
                 >
                   <input
                     type="text"
-                    placeholder={yemek}
+                    value={yemek}
+                    onChange={(e) => handleYemekChange(index, e.target.value)}
+                    required
                     className="p-2 duration-300 outline-none focus:ring-1 ring-black border w-full rounded-lg"
                   />
+                  {index !== 0 && (
+                    <X
+                      size={24}
+                      className="text-red-500 ml-2 cursor-pointer"
+                      onClick={() => handleRemoveYemek(index)}
+                    />
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>

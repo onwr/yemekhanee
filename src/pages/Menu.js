@@ -10,13 +10,137 @@ import {
 } from "firebase/firestore";
 import Cookies from "js-cookie";
 import { db } from "../firebase";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../components/Footer";
 import logo from "../images/siluet.png";
 import anitkabir from "../images/anitkabir.png";
 import { LogIn } from "lucide-react";
 import LoginModal from "../modals/LoginModal";
 import Eklendi from "../modals/Eklendi";
+import { toast } from "sonner";
+
+const BilgiModal = () => {
+  const [ad, setAd] = useState("");
+  const [ogrNo, setOgrNo] = useState("");
+  const [rol, setRol] = useState("ogrenci");
+
+  const formatAdSoyad = (input) => {
+    return input
+      .toUpperCase()
+      .replace(/ı/g, "I")
+      .replace(/ğ/g, "G")
+      .replace(/ü/g, "U")
+      .replace(/ş/g, "S")
+      .replace(/ç/g, "C")
+      .replace(/ö/g, "O")
+      .replace(/\s+/g, "-")
+      .replace(/--+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formattedAd = formatAdSoyad(ad);
+
+    if (formattedAd) {
+      Cookies.set("ad", encodeURIComponent(formattedAd), { expires: 365 });
+      Cookies.set("rol", rol, { expires: 365 });
+      if (rol === "ogrenci") {
+        Cookies.set("ogrNo", ogrNo, { expires: 365 });
+      }
+      toast.success("Bilgiler kaydedildi.");
+    } else {
+      toast.warning("Lütfen adınızı giriniz.");
+    }
+  };
+
+  return (
+    <motion.div
+      className="min-h-screen inset-0 fixed flex items-center justify-center bg-black z-50 bg-opacity-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.div
+        className="max-w-xs md:max-w-lg w-full ring-2 ring-offset-4 ring-emerald-200 rounded-lg p-5 bg-white"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+      >
+        <p className="text-center text-base md:text-lg font-semibold">
+          Lütfen Eksik Bilgileri Doldurun
+        </p>
+        <p className="text-xs text-center text-gray-500 mb-4">
+          Sizi listeye ekleyebilmemiz için gerekli bilgileri giriniz.
+        </p>
+
+        <div className="flex justify-center space-x-4 mb-4">
+          <button
+            type="button"
+            className={`py-2 w-full outline-none rounded-lg font-semibold ${
+              rol === "ogrenci"
+                ? "bg-emerald-500 text-white"
+                : "bg-gray-200 text-gray-600"
+            }`}
+            onClick={() => setRol("ogrenci")}
+          >
+            Öğrenciyim
+          </button>
+          <button
+            type="button"
+            className={`py-2 w-full outline-none rounded-lg font-semibold ${
+              rol === "ogretmen"
+                ? "bg-emerald-500 text-white"
+                : "bg-gray-200 text-gray-600"
+            }`}
+            onClick={() => setRol("ogretmen")}
+          >
+            Öğretmenim
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-2">
+          <input
+            type="text"
+            placeholder="Ad Soyad"
+            value={ad}
+            onChange={(e) => setAd(e.target.value)}
+            className="w-full border text-sm md:text-base py-2 text-center outline-none focus:ring-1 rounded-lg duration-300 ring-emerald-300"
+            autoFocus
+            required
+          />
+
+          <AnimatePresence>
+            {rol === "ogrenci" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <input
+                  type="text"
+                  placeholder="Öğrenci Numaranız"
+                  value={ogrNo}
+                  onChange={(e) => setOgrNo(e.target.value)}
+                  className="w-full mt-3 border text-sm md:text-base py-2 text-center outline-none focus:ring-1 rounded-lg duration-300 ring-emerald-300"
+                  required
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button
+            type="submit"
+            className="w-full border text-gray-800 hover:bg-emerald-300 duration-300 border-emerald-300 mt-4 py-2 rounded-xl bg-emerald-400 font-medium"
+          >
+            Kaydet
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
@@ -98,20 +222,17 @@ const Menu = () => {
       if (!querySnap.empty) {
         const docRef = querySnap.docs[0].ref;
 
-        // katılacak kişi sayısını güncelliyorum
         await updateDoc(docRef, {
           katilacakSayi: querySnap.docs[0].data().katilacakSayi + 1,
         });
 
         setIsOpen2(true);
       } else {
-        console.log("418");
-
+        console.log("418, Menü bulunamadı");
         alert("Hata var. H.K 418. Lütfen 11/A Onur Kürkaya haber veriniz.");
       }
     } catch (error) {
       console.log(error);
-
       alert("Hata var. H.K 419. Lütfen 11/A Onur Kürkaya haber veriniz.");
     }
     setIsDisabled(true);
@@ -167,7 +288,7 @@ const Menu = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          &copy; Onur KÜRKAYA
+          &copy; Onur Kürkaya
         </motion.h3>
       </header>
 
@@ -210,24 +331,29 @@ const Menu = () => {
             transition={{ duration: 0.5 }}
             className="p-4 border shadow-md rounded-lg bg-white"
           >
-            {menuItems[0]?.Yemek1 && (
+            {menuItems[0]?.yemek1 && (
               <div className="text-lg font-semibold  mb-2 border p-2 rounded-lg">
-                {menuItems[0].Yemek1}
+                {menuItems[0].yemek1}
               </div>
             )}
-            {menuItems[0]?.Yemek2 && (
+            {menuItems[0]?.yemek2 && (
               <div className="text-lg font-semibold  mb-2 border p-2 rounded-lg">
-                {menuItems[0].Yemek2}
+                {menuItems[0].yemek2}
               </div>
             )}
-            {menuItems[0]?.Yemek3 && (
+            {menuItems[0]?.yemek3 && (
               <div className="text-lg font-semibold  mb-2 border p-2 rounded-lg">
-                {menuItems[0].Yemek3}
+                {menuItems[0].yemek3}
               </div>
             )}
-            {menuItems[0]?.Yemek4 && (
+            {menuItems[0]?.yemek4 && (
               <div className="text-lg font-semibold  mb-2 border p-2 rounded-lg">
-                {menuItems[0].Yemek4}
+                {menuItems[0].yemek4}
+              </div>
+            )}
+            {menuItems[0]?.yemek5 && (
+              <div className="text-lg font-semibold  mb-2 border p-2 rounded-lg">
+                {menuItems[0].yemek5}
               </div>
             )}
           </motion.div>
@@ -286,6 +412,7 @@ const Menu = () => {
 
       <LoginModal isOpen={isOpen} setIsOpen={setIsOpen} />
       <Eklendi setIsOpen2={setIsOpen2} isOpen2={isOpen2} />
+      <BilgiModal />
       <br className="block md:hidden" />
       <br className="block md:hidden" />
       <br className="block md:hidden" />
